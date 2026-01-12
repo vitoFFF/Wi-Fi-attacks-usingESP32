@@ -20,7 +20,9 @@ typedef enum{
     ATTACK_HANDSHAKE_METHOD_BROADCAST,  ///< Method that takes advantage of WSL Bypasser component that bypass blocking mechanism in Wi-Fi Stack Libraries 
                                         /// to send raw 802.11 frames
     ATTACK_HANDSHAKE_METHOD_PASSIVE,    ///< Passive method that does not intervene communication on network, just passively capture handshake frames
+    ATTACK_HANDSHAKE_METHOD_STEALTH,    ///< Stealth method - sends deauth burst only when EAPOL frame detected
 } attack_handshake_methods_t;
+
 
 /**
  * @brief Starts handshake attack with given attack config.

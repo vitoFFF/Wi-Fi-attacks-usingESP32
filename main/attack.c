@@ -21,6 +21,8 @@
 #include "attack_pmkid.h"
 #include "attack_handshake.h"
 #include "attack_dos.h"
+#include "attack_beacon.h"
+#include "attack_phishing.h"
 #include "webserver.h"
 #include "wifi_controller.h"
 
@@ -92,6 +94,14 @@ static void attack_timeout(void* arg){
             ESP_LOGI(TAG, "Abort DOS attack...");
             attack_dos_stop();
             break;
+        case ATTACK_TYPE_BEACON:
+            ESP_LOGI(TAG, "Abort BEACON attack...");
+            attack_beacon_stop();
+            break;
+        case ATTACK_TYPE_PHISHING:
+            ESP_LOGI(TAG, "Abort PHISHING attack...");
+            attack_phishing_stop();
+            break;
         default:
             ESP_LOGE(TAG, "Unknown attack type. Not aborting anything");
     }
@@ -139,6 +149,12 @@ static void attack_request_handler(void *args, esp_event_base_t event_base, int3
             break;
         case ATTACK_TYPE_DOS:
             attack_dos_start(&attack_config);
+            break;
+        case ATTACK_TYPE_BEACON:
+            attack_beacon_start(&attack_config);
+            break;
+        case ATTACK_TYPE_PHISHING:
+            attack_phishing_start(&attack_config);
             break;
         default:
             ESP_LOGE(TAG, "Unknown attack type!");

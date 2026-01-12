@@ -1,348 +1,855 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>ESP32 Management AP</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP-PenTools | Elite Control</title>
     <style>
+        :root {
+            --primary: #f0ad4e;
+            --primary-glow: rgba(240, 173, 78, 0.4);
+            --bg: #0a0b0e;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --border: rgba(255, 255, 255, 0.1);
+            --glass: rgba(15, 15, 20, 0.8);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
         body {
-            width: fit-content;
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(240, 173, 78, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(240, 173, 78, 0.05) 0%, transparent 40%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        table, tr, th {
-            border: 1px solid;
-            border-collapse: collapse;
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            backdrop-filter: blur(20px);
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        header {
             text-align: center;
+            margin-bottom: 30px;
         }
-        th, td {
-            padding:10px;
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
         }
-        tr:hover, tr.selected {
-            background-color: lightblue;
-            cursor:pointer;
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        section {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Custom Dropdown Overlay */
+        .dropdown-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .dropdown-display {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 40px 12px 16px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-display::after {
+            content: '▼';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 0.7rem;
+            transition: transform 0.3s ease;
+        }
+
+        .dropdown-display.open::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .dropdown-options {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #1a1a2e;
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            margin-top: 4px;
+            z-index: 100;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .dropdown-options.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-option {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dropdown-option:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-option:hover {
+            background: var(--primary-glow);
+            color: var(--primary);
+        }
+
+        .dropdown-option.selected {
+            background: var(--primary);
+            color: #000;
+            font-weight: bold;
+        }
+
+        select,
+        input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* Custom Dropdown Styling */
+        .custom-select {
+            position: relative;
+        }
+
+        .custom-select select {
+            padding-right: 40px;
+            cursor: pointer;
+        }
+
+        .custom-select::after {
+            content: '▼';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            pointer-events: none;
+            font-size: 0.8rem;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0px 15px var(--primary-glow);
+        }
+
+        select option {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 12px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            text-align: left;
+            padding: 12px 16px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr.selected {
+            background: var(--primary-glow);
+            color: var(--primary);
+        }
+
+        /* Collapsible BSSID */
+        .bssid-cell {
+            max-width: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: max-width 0.3s ease;
+        }
+
+        .bssid-cell.expanded {
+            max-width: 200px;
+        }
+
+        .bssid-toggle {
+            display: inline-block;
+            background: var(--primary);
+            color: #000;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* RSSI Signal Bar */
+        .rssi-bar {
+            width: 50px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .rssi-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .rssi-good {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+        }
+
+        .rssi-medium {
+            background: linear-gradient(90deg, #FFC107, #FF9800);
+        }
+
+        .rssi-weak {
+            background: linear-gradient(90deg, #f44336, #E91E63);
+        }
+
+        button {
+            width: 100%;
+            background: var(--primary);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px var(--primary-glow);
+            filter: brightness(1.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        #running {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid var(--border);
+            border-bottom-color: var(--primary);
+            border-radius: 50%;
+            display: inline-block;
+            animation: rotation 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #errors {
+            background: rgba(255, 82, 82, 0.1);
+            border-left: 4px solid #ff5252;
+            color: #ff5252;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        code {
+            display: block;
+            background: #000;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--primary);
+            word-break: break-all;
+            margin: 10px 0;
+            font-size: 0.85rem;
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+                border-radius: 20px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        .intel-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(240, 173, 78, 0.05);
+            border: 1px dashed var(--primary);
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: var(--text-muted);
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .intel-box b {
+            color: var(--primary);
         }
     </style>
 </head>
+
 <body onLoad="getStatus()">
-    <h1>ESP32 Wi-Fi Penetration Tool</h1>
-    <section id="errors"></section>
-    <section id="loading">Loading... Please wait</section>
-    <section id="ready" style="display: none;">
-        <h2>Attack configuration</h2>
-        <form onSubmit="runAttack(); return false;">
-            <fieldset>
-                <legend>Select target</legend>
-                <table id="ap-list"></table>
-                <p>
-                    <button type="button" onClick="refreshAps()">Refresh</button>
-                </p>
-            </fieldset>
-            <fieldset>
-                <legend>Attack configuration</legend>
-                <p>
-                    <label for="attack_type">Attack type:</label>
-                    <select id="attack_type" onChange="updateConfigurableFields(this)" required>
-                        <option value="0" title="This type is not implemented yet." disabled>ATTACK_TYPE_PASSIVE</option>
-                        <option value="1">ATTACK_TYPE_HANDSHAKE</option>
-                        <option value="2" selected>ATTACK_TYPE_PMKID</option>
-                        <option value="3">ATTACK_TYPE_DOS</option>
-                    </select>
-                </p>
-                <p>
-                    <label for="attack_method">Attack method:</label>
-                    <select id="attack_method" required disabled>
-                        <option value="" selected disabled hidden>NOT AVAILABLE</option>
-                    </select>
-                </p>
-                <p>
-                    <label for="attack_timeout">Attack timeout (seconds):</label>
-                    <input type="number" min="0" max="255" id="attack_timeout" value="" required/>
-                </p>
-                <p>
-                    <button>Attack</button>
-                </p>
-            </fieldset>
-        </form>
-    </section>
-    <section id="running" style="display: none;">
-        Time elapsed: <span id="running-progress"></span>
-    </section>
-    <section id="result" style="display: none;">
-        <div id="result-meta">Loading result.. Please wait</div>
-        <div id="result-content"></div>
-        <button type="button" onClick="resetAttack()">New attack</button>
-    </section>
+    <div class="container">
+        <header>
+            <h1>ESP-PEN TOOLS</h1>
+            <div class="subtitle">Nexus Interface v1.0</div>
+        </header>
+
+        <div id="errors"></div>
+
+        <section id="loading" style="display: block; text-align: center;">
+            <div class="loader"></div>
+            <p>Initializing System...</p>
+        </section>
+
+        <section id="ready">
+            <div class="card">
+                <label>Targets in Range</label>
+                <div class="table-container">
+                    <table id="ap-list"></table>
+                </div>
+                <button type="button" class="secondary" onClick="refreshAps()">Refresh Scan</button>
+            </div>
+
+            <div class="card">
+                <form id="attack-form" onSubmit="runAttack(); return false;">
+                    <label for="attack_type">Mission Protocol</label>
+                    <div class="dropdown-wrapper" id="protocol-dropdown">
+                        <div class="dropdown-display" onclick="toggleDropdown('protocol-dropdown')">PMKID EXPLOITATION
+                        </div>
+                        <div class="dropdown-options">
+                            <div class="dropdown-option" data-value="0"
+                                onclick="selectOption('protocol-dropdown', this, 0)">PASSIVE OBSERVATION</div>
+                            <div class="dropdown-option" data-value="1"
+                                onclick="selectOption('protocol-dropdown', this, 1)">WPA HANDSHAKE CAPTURE</div>
+                            <div class="dropdown-option selected" data-value="2"
+                                onclick="selectOption('protocol-dropdown', this, 2)">PMKID EXPLOITATION</div>
+                            <div class="dropdown-option" data-value="3"
+                                onclick="selectOption('protocol-dropdown', this, 3)">DENIAL OF SERVICE</div>
+                            <div class="dropdown-option" data-value="4"
+                                onclick="selectOption('protocol-dropdown', this, 4)">BEACON SWARM</div>
+                            <div class="dropdown-option" data-value="5"
+                                onclick="selectOption('protocol-dropdown', this, 5)">CAPTIVE PORTAL</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="attack_type" value="2">
+
+                    <label for="attack_method">Tactical Method</label>
+                    <div class="dropdown-wrapper" id="method-dropdown">
+                        <div class="dropdown-display" onclick="toggleDropdown('method-dropdown')">SELECT PROTOCOL FIRST
+                        </div>
+                        <div class="dropdown-options" id="method-options">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                    <input type="hidden" id="attack_method" value="">
+
+                    <label for="attack_timeout">Operation Window (Seconds)</label>
+                    <input type="number" min="0" max="255" id="attack_timeout" value="60" required />
+
+                    <button>Infiltrate</button>
+
+                    <div id="intel-panel" class="intel-box"></div>
+                </form>
+            </div>
+        </section>
+
+        <section id="running">
+            <div class="loader"></div>
+            <h3>OPERATION IN PROGRESS</h3>
+            <p style="margin-top: 10px; color: var(--text-muted);">Runtime: <span id="running-progress"
+                    style="color: var(--primary); font-weight: bold;"></span></p>
+        </section>
+
+        <section id="result">
+            <div class="card">
+                <h3 id="result-meta" style="color: var(--primary); margin-bottom: 15px;">RESULTS ACQUIRED</h3>
+                <div id="result-content"></div>
+                <button type="button" onClick="resetAttack()" style="margin-top: 20px;">New Mission</button>
+            </div>
+        </section>
+    </div>
+
     <script>
-    var AttackStateEnum = { READY: 0, RUNNING: 1, FINISHED: 2, TIMEOUT: 3};
-    var AttackTypeEnum = { ATTACK_TYPE_PASSIVE: 0, ATTACK_TYPE_HANDSHAKE: 1, ATTACK_TYPE_PMKID: 2, ATTACK_TYPE_DOS: 3};
-    var selectedApElement = -1;
-    var poll;
-    var poll_interval = 1000;
-    var running_poll;
-    var running_poll_interval = 1000;
-    var attack_timeout = 0;
-    var time_elapsed = 0;
-    var defaultResultContent = document.getElementById("result").innerHTML;
-    var defaultAttackMethods = document.getElementById("attack_method").outerHTML;
-    function getStatus() {
-        var oReq = new XMLHttpRequest();
-        oReq.onload = function() {
-            var arrayBuffer = oReq.response;
-            if(arrayBuffer) {
-                var attack_state = parseInt(new Uint8Array(arrayBuffer, 0, 1));
-                var attack_type = parseInt(new Uint8Array(arrayBuffer, 1, 1));
-                var attack_content_size = parseInt(new Uint16Array(arrayBuffer, 2, 1));
-                var attack_content = new Uint8Array(arrayBuffer, 4);
-                console.log("attack_state=" + attack_state + "; attack_type=" + attack_type + "; attack_count_size=" + attack_content_size);
-                var status = "ERROR: Cannot parse attack state.";
-                hideAllSections();
-                switch(attack_state) {
-                    case AttackStateEnum.READY:
-                        showAttackConfig();
-                        break;
-                    case AttackStateEnum.RUNNING:
-                        showRunning();
-                        console.log("Poll");
-                        setTimeout(getStatus, poll_interval);
-                        break;
-                    case AttackStateEnum.FINISHED:
-                        showResult("FINISHED", attack_type, attack_content_size, attack_content);
-                        break;
-                    case AttackStateEnum.TIMEOUT:
-                        showResult("TIMEOUT", attack_type, attack_content_size, attack_content);
-                        break;
-                    default:
-                        document.getElementById("errors").innerHTML = "Error loading attack status! Unknown state.";
-                }
-                return;
-                
-            }
-        };
-        oReq.onerror = function() {
-            console.log("Request error");
-            document.getElementById("errors").innerHTML = "Cannot reach ESP32. Check that you are connected to management AP. You might get disconnected during attack.";
-            getStatus();
-        };
-        oReq.ontimeout = function() {
-            console.log("Request timeout");
-            getStatus();  
-        };
-        oReq.open("GET", "http://192.168.4.1/status", true);
-        oReq.responseType = "arraybuffer";
-        oReq.send();
-    }
-    function hideAllSections(){
-        for(let section of document.getElementsByTagName("section")){
-            section.style.display = "none";
-        };
-    }
-    function showRunning(){
-        hideAllSections();
-        document.getElementById("running").style.display = "block";
-    }
-    function countProgress(){
-        if(time_elapsed >= attack_timeout){
-            document.getElementById("errors").innerHTML = "Please reconnect to management AP";
-            document.getElementById("errors").style.display = "block";
-            clearInterval(running_poll);
-        }
-        document.getElementById("running-progress").innerHTML = time_elapsed + "/" + attack_timeout + "s";
-        time_elapsed++;
-    }
-    function showAttackConfig(){
-        document.getElementById("ready").style.display = "block";
-        refreshAps();
-    }
-    function showResult(status, attack_type, attack_content_size, attack_content){
-        hideAllSections();
-        clearInterval(poll);
-        document.getElementById("result").innerHTML = defaultResultContent;
-        document.getElementById("result").style.display = "block";
-        document.getElementById("result-meta").innerHTML = status + "<br>";
-        type = "ERROR: Cannot parse attack type.";
-        switch(attack_type) {
-            case AttackTypeEnum.ATTACK_TYPE_PASSIVE:
-                type = "ATTACK_TYPE_PASSIVE";
-                break;
-            case AttackTypeEnum.ATTACK_TYPE_HANDSHAKE:
-                type = "ATTACK_TYPE_HANDSHAKE";
-                resultHandshake(attack_content, attack_content_size);
-                break;
-            case AttackTypeEnum.ATTACK_TYPE_PMKID:
-                type = "ATTACK_TYPE_PMKID";
-                resultPmkid(attack_content, attack_content_size);
-                break;
-            case AttackTypeEnum.ATTACK_TYPE_DOS:
-                type = "ATTACK_TYPE_DOS";
-                break;
-            default:
-                type = "UNKNOWN";
-        }
-        document.getElementById("result-meta").innerHTML += type + "<br>";
-    }
-    function refreshAps() {
-        document.getElementById("ap-list").innerHTML = "Loading (this may take a while)...";
-        var oReq = new XMLHttpRequest();
-        oReq.onload = function() {
-            document.getElementById("ap-list").innerHTML = "<th>SSID</th><th>BSSID</th><th>RSSI</th>";
-            var arrayBuffer = oReq.response;
-            if(arrayBuffer) {
-                var byteArray = new Uint8Array(arrayBuffer);
-                for  (let i = 0; i < byteArray.byteLength; i = i + 40) {
-                    var tr = document.createElement('tr');
-                    tr.setAttribute("id", i / 40);
-                    tr.setAttribute("onClick", "selectAp(this)");
-                    var td_ssid = document.createElement('td');
-                    var td_rssi = document.createElement('td');
-                    var td_bssid = document.createElement('td');
-                    td_ssid.innerHTML = new TextDecoder("utf-8").decode(byteArray.subarray(i + 0, i + 32));
-                    tr.appendChild(td_ssid);
-                    for(let j = 0; j < 6; j++){
-                        td_bssid.innerHTML += uint8ToHex(byteArray[i + 33 + j]) + ":";
+        var AttackStateEnum = { READY: 0, RUNNING: 1, FINISHED: 2, TIMEOUT: 3 };
+        var AttackTypeEnum = { PASSIVE: 0, HANDSHAKE: 1, PMKID: 2, DOS: 3, BEACON: 4, PHISHING: 5 };
+        var selectedApElement = -1;
+        var poll_interval = 2000;
+        var running_poll;
+        var running_poll_interval = 1000;
+        var attack_timeout = 0;
+
+        // Store defaults for resets
+        var defaultAttackMethods = document.getElementById("attack_method").innerHTML;
+
+        function getStatus() {
+            var oReq = new XMLHttpRequest();
+            oReq.onload = function () {
+                var arrayBuffer = oReq.response;
+                if (arrayBuffer) {
+                    var data = new Uint8Array(arrayBuffer);
+                    var attack_state = data[0];
+                    var attack_type = data[1];
+                    var attack_content_size = (data[3] << 8) | data[2];
+                    var attack_content = data.slice(4);
+
+                    console.log("State:", attack_state, "Type:", attack_type);
+
+                    hideAllSections();
+                    switch (attack_state) {
+                        case AttackStateEnum.READY:
+                            showSection("ready");
+                            if (document.getElementById("ap-list").innerHTML == "") refreshAps();
+                            break;
+                        case AttackStateEnum.RUNNING:
+                            showSection("running");
+                            setTimeout(getStatus, poll_interval);
+                            break;
+                        case AttackStateEnum.FINISHED:
+                            showResult("MISSION COMPLETED", attack_type, attack_content_size, attack_content);
+                            break;
+                        case AttackStateEnum.TIMEOUT:
+                            showResult("OPERATION TIMEOUT", attack_type, attack_content_size, attack_content);
+                            break;
+                        default:
+                            showError("System State Corruption");
                     }
-                    tr.appendChild(td_bssid);
-                    td_rssi.innerHTML = byteArray[i + 39] - 255;
-                    tr.appendChild(td_rssi);
-                    document.getElementById("ap-list").appendChild(tr);
                 }
+            };
+            oReq.onerror = () => {
+                showError("Connection Lost - Retrying...");
+                setTimeout(getStatus, 2000);
+            };
+            oReq.open("GET", "/status", true);
+            oReq.responseType = "arraybuffer";
+            oReq.send();
+        }
+
+        function showSection(id) {
+            hideAllSections();
+            document.getElementById(id).style.display = "block";
+        }
+
+        function hideAllSections() {
+            ["loading", "ready", "running", "result"].forEach(id => {
+                document.getElementById(id).style.display = "none";
+            });
+        }
+
+        function showError(msg) {
+            const err = document.getElementById("errors");
+            err.innerHTML = msg;
+            err.style.display = "block";
+            setTimeout(() => { err.style.display = "none"; }, 5000);
+        }
+
+        function refreshAps() {
+            const list = document.getElementById("ap-list");
+            list.innerHTML = "<tr><td colspan='3' style='text-align:center'>Scanning Airwaves...</td></tr>";
+            var oReq = new XMLHttpRequest();
+            oReq.onload = function () {
+                list.innerHTML = "<thead><tr><th>SSID</th><th>BSSID</th><th>RSSI</th></tr></thead><tbody></tbody>";
+                const tbody = list.querySelector("tbody");
+                var arrayBuffer = oReq.response;
+                if (arrayBuffer) {
+                    var byteArray = new Uint8Array(arrayBuffer);
+                    for (let i = 0; i < byteArray.byteLength; i += 40) {
+                        var tr = document.createElement('tr');
+                        tr.id = i / 40;
+                        tr.onclick = function () { selectAp(this); };
+
+                        var ssid = new TextDecoder("utf-8").decode(byteArray.subarray(i, i + 32)).replace(/\0/g, '');
+                        var bssid = Array.from(byteArray.subarray(i + 33, i + 39)).map(b => b.toString(16).padStart(2, '0')).join(':');
+                        var rssi = byteArray[i + 39] - 255;
+
+                        var rssiPercent = Math.min(100, Math.max(0, (rssi + 100) * 1.5));
+                        var rssiClass = rssi > -50 ? 'rssi-good' : (rssi > -70 ? 'rssi-medium' : 'rssi-weak');
+
+                        // Collapsible BSSID - even shorter
+                        var bssidShort = bssid.substring(0, 5) + '..';
+                        tr.innerHTML = `<td>${ssid || '[HIDDEN]'}</td><td><span class="bssid-cell" onclick="toggleBssid(this, event)" data-full="${bssid}">${bssidShort}</span><span class="bssid-toggle" onclick="toggleBssid(this.previousElementSibling, event)">+</span></td><td><div class="rssi-bar"><div class="rssi-bar-fill ${rssiClass}" style="width:${rssiPercent}%"></div></div>${rssi}dBm</td>`;
+                        tbody.appendChild(tr);
+                    }
+                }
+            };
+            oReq.open("GET", "/ap-list", true);
+            oReq.responseType = "arraybuffer";
+            oReq.send();
+        }
+
+        function selectAp(el) {
+            if (selectedApElement != -1) selectedApElement.classList.remove("selected");
+            selectedApElement = el;
+            el.classList.add("selected");
+        }
+
+        function runAttack() {
+            if (selectedApElement == -1) return showError("Select target first");
+
+            showSection("running");
+            var data = new Uint8Array(4);
+            data[0] = parseInt(selectedApElement.id);
+            data[1] = parseInt(document.getElementById("attack_type").value);
+            data[2] = parseInt(document.getElementById("attack_method").value || 0);
+            data[3] = parseInt(document.getElementById("attack_timeout").value);
+
+            var oReq = new XMLHttpRequest();
+            oReq.open("POST", "/run-attack", true);
+            oReq.send(data.buffer);
+
+            attack_timeout = data[3];
+            time_elapsed = 0;
+            clearInterval(running_poll);
+            running_poll = setInterval(() => {
+                document.getElementById("running-progress").innerHTML = `${time_elapsed}/${attack_timeout}s`;
+                if (++time_elapsed > attack_timeout) clearInterval(running_poll);
+            }, 1000);
+
+            setTimeout(getStatus, 2000);
+        }
+
+        function resetAttack() {
+            var oReq = new XMLHttpRequest();
+            oReq.open("HEAD", "/reset", true);
+            oReq.send();
+            getStatus();
+        }
+
+        function showResult(title, type, size, content) {
+            showSection("result");
+            document.getElementById("result-meta").innerHTML = title;
+            const resDiv = document.getElementById("result-content");
+            resDiv.innerHTML = "";
+
+            if (type == AttackTypeEnum.HANDSHAKE) {
+                resDiv.innerHTML = `<button class="secondary" onclick="location.href='/capture.pcap'">Download PCAP</button>
+                               <button class="secondary" onclick="location.href='/capture.hccapx'">Download HCCAPX</button>`;
+            } else if (type == AttackTypeEnum.PMKID) {
+                let ap = Array.from(content.slice(0, 6)).map(b => b.toString(16).padStart(2, '0')).join('');
+                let sta = Array.from(content.slice(6, 12)).map(b => b.toString(16).padStart(2, '0')).join('');
+                let ssid_len = content[12];
+                let ssid_hex = Array.from(content.slice(13, 13 + ssid_len)).map(b => b.toString(16).padStart(2, '0')).join('');
+                let pmkid = Array.from(content.slice(13 + ssid_len)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                resDiv.innerHTML = `<label>Access Point MAC</label><code>${ap}</code>
+                               <label>Station MAC</label><code>${sta}</code>
+                               <label>PMKID Hash</label><code>${pmkid}</code>
+                               <label>Hashcat Format</label><code>${pmkid}*${ap}*${sta}*${ssid_hex}</code>`;
+            } else {
+                resDiv.innerHTML = `<p>Activity report generated. Check serial logs for details.</p>`;
+            }
+        }
+
+        function updateConfigurableFields(type) {
+            const methodOptions = document.getElementById("method-options");
+            const methodDisplay = document.querySelector("#method-dropdown .dropdown-display");
+            const methodHidden = document.getElementById("attack_method");
+
+            methodOptions.innerHTML = "";
+            methodDisplay.innerText = "SELECT METHOD";
+            methodHidden.value = "";
+
+            let methods = [];
+            switch (parseInt(type)) {
+                case AttackTypeEnum.HANDSHAKE:
+                    methods = ["DEAUTH_ROGUE_AP", "DEAUTH_BROADCAST", "PASSIVE_CAPTURE", "STEALTH_TRIGGER"];
+                    document.getElementById("attack_timeout").value = 60;
+                    break;
+                case AttackTypeEnum.PMKID:
+                    methods = ["STANDARD_PMKID"];
+                    document.getElementById("attack_timeout").value = 10;
+                    break;
+                case AttackTypeEnum.DOS:
+                    methods = ["DEAUTH_ROGUE_AP", "DEAUTH_BROADCAST", "COMBINED_FLOOD"];
+                    document.getElementById("attack_timeout").value = 120;
+                    break;
+                case AttackTypeEnum.BEACON:
+                    methods = ["SSID_FLOOD"];
+                    document.getElementById("attack_timeout").value = 60;
+                    break;
+                case AttackTypeEnum.PHISHING:
+                    methods = ["CAPTIVE_PORTAL"];
+                    document.getElementById("attack_timeout").value = 300;
+                    break;
+            }
+
+            methods.forEach((m, i) => {
+                let div = document.createElement("div");
+                div.className = "dropdown-option";
+                div.innerText = m;
+                div.onclick = function () { selectOption('method-dropdown', this, i); };
+                methodOptions.appendChild(div);
+
+                // Select first by default
+                if (i === 0) {
+                    selectOption('method-dropdown', div, i);
+                }
+            });
+
+            updateIntel();
+        }
+
+        function toggleBssid(el, event) {
+            event.stopPropagation();
+            if (el.classList.contains('expanded')) {
+                el.classList.remove('expanded');
+                el.innerText = el.dataset.full.substring(0, 5) + '..';
+                el.nextElementSibling.innerText = '+';
+            } else {
+                el.classList.add('expanded');
+                el.innerText = el.dataset.full;
+                el.nextElementSibling.innerText = '-';
+            }
+        }
+
+        // Custom Dropdown Functions
+        function toggleDropdown(id) {
+            const wrapper = document.getElementById(id);
+            const display = wrapper.querySelector('.dropdown-display');
+            const options = wrapper.querySelector('.dropdown-options');
+
+            // Close other dropdowns
+            document.querySelectorAll('.dropdown-options.show').forEach(el => {
+                if (el !== options) el.classList.remove('show');
+            });
+            document.querySelectorAll('.dropdown-display.open').forEach(el => {
+                if (el !== display) el.classList.remove('open');
+            });
+
+            display.classList.toggle('open');
+            options.classList.toggle('show');
+        }
+
+        function selectOption(dropdownId, optionEl, value) {
+            const wrapper = document.getElementById(dropdownId);
+            const display = wrapper.querySelector('.dropdown-display');
+            const hiddenInput = (dropdownId === 'protocol-dropdown') ?
+                document.getElementById('attack_type') : document.getElementById('attack_method');
+
+            // Update display
+            display.innerText = optionEl.innerText;
+            display.classList.remove('open');
+            wrapper.querySelector('.dropdown-options').classList.remove('show');
+
+            // Update hidden input
+            hiddenInput.value = value;
+
+            // Update selected state
+            wrapper.querySelectorAll('.dropdown-option').forEach(el => el.classList.remove('selected'));
+            optionEl.classList.add('selected');
+
+            // Trigger conditional logic
+            if (dropdownId === 'protocol-dropdown') {
+                updateConfigurableFields(value);
+            } else {
+                updateIntel();
+            }
+        }
+
+        const INTEL = {
+            PROTOCOLS: [
+                "<b>PASSIVE OBSERVATION</b>: Stealthily monitors traffic without transmitting. Use for reconnaissance.",
+                "<b>WPA HANDSHAKE CAPTURE</b>: Triggers client reconnection to capture authentication frames for offline cracking.",
+                "<b>PMKID EXPLOITATION</b>: Client-less attack targeting the AP directly. Fast and stealthy.",
+                "<b>DENIAL OF SERVICE</b>: Disrupts connectivity by flooding targets with deauthentication frames.",
+                "<b>BEACON SWARM</b>: Floods the scanning environment with multiple fake SSIDs to mask activity.",
+                "<b>CAPTIVE PORTAL</b>: Clones the target AP to fish for credentials via a fake login interface."
+            ],
+            METHODS: {
+                "DEAUTH_ROGUE_AP": "Uses a clone AP to force clients to migrate to our controlled interface.",
+                "DEAUTH_BROADCAST": "Sends deauth frames to all connected stations simultaneously.",
+                "PASSIVE_CAPTURE": "Waits for a natural handshake without any active interference.",
+                "STEALTH_TRIGGER": "Intelligently deauths only when an EAPOL packet is detected to avoid detection.",
+                "STANDARD_PMKID": "Native RSNIE exploitation to extract the PMKID from the AP's beacon/response.",
+                "COMBINED_FLOOD": "Aggressive burst of deauth frames to both the AP and all its clients.",
+                "SSID_FLOOD": "Phases across channels broadcasting randomized 802.11 beacon frames.",
+                "CAPTIVE_PORTAL": "Hosts a DNS redirector and HTTP server to serve the phishing authentication page."
             }
         };
-        oReq.onerror = function() {
-            document.getElementById("ap-list").innerHTML = "ERROR";
-        };
-        oReq.open("GET", "http://192.168.4.1/ap-list", true);
-        oReq.responseType = "arraybuffer";
-        oReq.send();
-    }
-    function selectAp(el) {
-        console.log(el.id);
-        if(selectedApElement != -1){
-            selectedApElement.classList.remove("selected")
-        }
-        selectedApElement=el;
-        el.classList.add("selected");
-    }
-    function runAttack() {
-        if(selectedApElement == -1){
-            console.log("No AP selected. Attack not started.");
-            document.getElementById("errors").innerHTML = "No AP selected. Attack not started.";
-            return;
-        }
-        hideAllSections();
-        document.getElementById("running").style.display = "block";
-        var arrayBuffer = new ArrayBuffer(4);
-        var uint8Array = new Uint8Array(arrayBuffer);
-        uint8Array[0] = parseInt(selectedApElement.id);
-        uint8Array[1] = parseInt(document.getElementById("attack_type").value);
-        uint8Array[2] = parseInt(document.getElementById("attack_method").value);
-        uint8Array[3] = parseInt(document.getElementById("attack_timeout").value);
-        var oReq = new XMLHttpRequest();
-        oReq.open("POST", "http://192.168.4.1/run-attack", true);
-        oReq.send(arrayBuffer);
-        getStatus();
-        attack_timeout = parseInt(document.getElementById("attack_timeout").value);
-        time_elapsed = 0;
-        running_poll = setInterval(countProgress, running_poll_interval);
-    }
-    function resetAttack(){
-        hideAllSections();
-        showAttackConfig();
-        var oReq = new XMLHttpRequest();
-        oReq.open("HEAD", "http://192.168.4.1/reset", true);
-        oReq.send();
-    }
-    function resultPmkid(attack_content, attack_content_size){
-        var mac_ap = "";
-        var mac_sta = "";
-        var ssid = "";
-        var ssid_text = "";
-        var pmkid = "";
-        var index = 0;
-        for(let i = 0; i < 6; i = i + 1) {
-            mac_ap += uint8ToHex(attack_content[index + i]);
-        }
-        index = index + 6;
-        for(let i = 0; i < 6; i = i + 1) {
-            mac_sta += uint8ToHex(attack_content[index + i]);
-        }
-        index = index + 6;
-        for(let i = 0; i < attack_content[index]; i = i + 1) {
-            ssid += uint8ToHex(attack_content[index + 1 + i]);
-            ssid_text += String.fromCharCode(attack_content[index + 1 + i]);
-        }
-        index = index + attack_content[index] + 1;
-        var pmkid_cnt = 0;
-        for(let i = 0; i < attack_content_size - index; i = i + 1) {
-            if((i % 16) == 0){
-                pmkid += "<br>";
-                pmkid += "</code>PMKID #" + pmkid_cnt + ": <code>";
-                pmkid_cnt += 1;
+
+        function updateIntel() {
+            const type = parseInt(document.getElementById("attack_type").value);
+            const methodLabel = document.querySelector("#method-dropdown .dropdown-display").innerText;
+            const panel = document.getElementById("intel-panel");
+
+            let text = INTEL.PROTOCOLS[type] || "";
+            if (INTEL.METHODS[methodLabel]) {
+                text += "<br><br><b>TACTIC</b>: " + INTEL.METHODS[methodLabel];
             }
-            pmkid += uint8ToHex(attack_content[index + i]);
+
+            panel.innerHTML = text;
+            panel.style.display = text ? "block" : "none";
         }
-        document.getElementById("result-content").innerHTML = "";
-        document.getElementById("result-content").innerHTML += "MAC AP: <code>" + mac_ap + "</code><br>";
-        document.getElementById("result-content").innerHTML += "MAC STA: <code>" + mac_sta + "</code><br>";
-        document.getElementById("result-content").innerHTML += "(E)SSID: <code>" + ssid + "</code> (" + ssid_text + ")";
-        document.getElementById("result-content").innerHTML += "<code>" + pmkid + "</code><br>";
-        document.getElementById("result-content").innerHTML += "<br>Hashcat ready format:"
-        document.getElementById("result-content").innerHTML += "<code>" + pmkid + "*" + mac_ap + "*" + mac_sta  + "*" + ssid  + "</code><br>";
-    }
-    function resultHandshake(attack_content, attack_content_size){
-        document.getElementById("result-content").innerHTML = "";
-        var pcap_link = document.createElement("a");
-        pcap_link.setAttribute("href", "capture.pcap");
-        pcap_link.text = "Download PCAP file";
-        var hccapx_link = document.createElement("a");
-        hccapx_link.setAttribute("href", "capture.hccapx");
-        hccapx_link.text = "Download HCCAPX file";
-        document.getElementById("result-content").innerHTML += "<p>" + pcap_link.outerHTML + "</p>";
-        document.getElementById("result-content").innerHTML += "<p>" + hccapx_link.outerHTML + "</p>";
-        var handshakes = "";
-        for(let i = 0; i < attack_content_size; i = i + 1) {
-            handshakes += uint8ToHex(attack_content[i]);
-            if(i % 50 == 49) {
-                handshakes += "\n";
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.dropdown-wrapper')) {
+                document.querySelectorAll('.dropdown-options.show').forEach(el => el.classList.remove('show'));
+                document.querySelectorAll('.dropdown-display.open').forEach(el => el.classList.remove('open'));
             }
-        }
-        document.getElementById("result-content").innerHTML += "<pre><code>" + handshakes + "</code></pre>";
-    }
-    function uint8ToHex(uint8){
-        return ("00" + uint8.toString(16)).slice(-2);
-    }
-    function updateConfigurableFields(el){
-        document.getElementById("attack_method").outerHTML = defaultAttackMethods;
-        switch(parseInt(el.value)){
-            case AttackTypeEnum.ATTACK_TYPE_PASSIVE:
-                console.log("PASSIVE configuration");
-                break;
-            case AttackTypeEnum.ATTACK_TYPE_HANDSHAKE:
-                console.log("HANDSHAKE configuration");
-                document.getElementById("attack_timeout").value = 60;
-                setAttackMethods(["DEAUTH_ROGUE_AP (PASSIVE)", "DEAUTH_BROADCAST (ACTIVE)", "CAPTURE_ONLY (PASSIVE)"]);
-                break;
-            case AttackTypeEnum.ATTACK_TYPE_PMKID:
-                console.log("PMKID configuration");
-                document.getElementById("attack_timeout").value = 5;
-                break;
-            case AttackTypeEnum.ATTACK_TYPE_DOS:
-                console.log("DOS configuration");
-                document.getElementById("attack_timeout").value = 120;
-                setAttackMethods(["DEAUTH_ROGUE_AP (PASSIVE)", "DEAUTH_BROADCAST (ACTIVE)", "DEAUTH_COMBINE_ALL"]);
-                break;
-            default:
-                console.log("Unknown attack type");
-                break;
-        }
-    }
-    function setAttackMethods(attackMethodsArray){
-        document.getElementById("attack_method").removeAttribute("disabled");
-        attackMethodsArray.forEach(function(method, index){
-            let option = document.createElement("option");
-            option.value = index;
-            option.text = method;
-            option.selected = true;
-            document.getElementById("attack_method").appendChild(option);
         });
-    }
     </script>
 </body>
+
 </html>
