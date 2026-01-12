@@ -39,7 +39,7 @@ idf.py flash
 ### 2. Connect
 Once flashed, the ESP32 will start a Management Access Point:
 - **SSID**: `Twin`
-- **Password**: `Twin314`
+- **Password**: `Twin3141`
 
 ### 3. Configure
 Open your browser and navigate to `http://192.168.4.1` to access the control dashboard.

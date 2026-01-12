@@ -14,7 +14,7 @@ menu "Wi-Fi Controller"
 
         config MGMT_AP_PASSWORD
             string "Management AP Password"
-            default "Twin314"
+            default "Twin3141"
             help
             Password for management AP WPA2 (minimum 8 characters)
 
